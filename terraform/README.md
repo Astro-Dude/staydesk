@@ -19,7 +19,7 @@ AWS account (ap-south-1)
 │         └── tag kubernetes.io/role/internal-elb=1
 │
 ├── EKS cluster "staydesk-eks" (Kubernetes 1.35) ─── eks.tf
-│   ├── managed node group "general": 2 × t3.medium (min 1 / max 4), AL2023, 30 GiB gp3
+│   ├── managed node group "general": 2 × c7i-flex.large (min 1 / max 4), AL2023, 30 GiB gp3
 │   │     └── runs in the private subnets
 │   ├── add-ons: vpc-cni, kube-proxy, coredns, eks-pod-identity-agent,
 │   │            aws-ebs-csi-driver (+ default gp3 StorageClass), metrics-server
@@ -105,7 +105,7 @@ Approximate on-demand prices in ap-south-1 (check the AWS pricing pages for curr
 | Resource | Approx. cost |
 |----------|--------------|
 | EKS control plane (standard support) | $0.10 / hour |
-| 2 × t3.medium worker nodes | ~$0.045 / hour each |
+| 2 × c7i-flex.large worker nodes | ~$0.09 / hour each (Free Tier eligible) |
 | NAT gateway | ~$0.056 / hour + per-GB data processed |
 | Load balancer created by the ingress controller | ~$0.025 / hour + LCU |
 | EBS: 2 × 30 GiB node disks + PostgreSQL PVC (gp3) | a few $ / month |

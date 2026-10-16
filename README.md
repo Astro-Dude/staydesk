@@ -262,7 +262,7 @@ It creates, in `ap-south-1`:
 - a **VPC** `10.20.0.0/16` with **2 public + 2 private subnets** across two AZs, one NAT
   gateway, and the subnet tags Kubernetes load balancers need
 - an **EKS 1.35** cluster (standard support only, so no extended-support pricing) with a
-  **managed node group** of `t3.medium` nodes (min 1, desired 2, max 4) in the private subnets
+  **managed node group** of `c7i-flex.large` nodes (Free Tier eligible) (min 1, desired 2, max 4) in the private subnets
 - add-ons: VPC CNI, CoreDNS, kube-proxy, Pod Identity agent, **EBS CSI driver** (default
   gp3 StorageClass for the PostgreSQL volume), and **metrics-server** for the HPA
 - a **GitHub OIDC deploy role** that only `Astro-Dude/staydesk` on `main` can assume
@@ -403,5 +403,5 @@ helm uninstall kube-prometheus-stack -n monitoring
 cd terraform && terraform destroy
 ```
 
-An EKS control plane, two `t3.medium` nodes and a NAT gateway cost roughly **US$0.25–0.30 per
+An EKS control plane, two `c7i-flex.large` nodes and a NAT gateway cost roughly **US$0.25–0.30 per
 hour** in `ap-south-1`. Run `terraform destroy` as soon as the evaluation is done.

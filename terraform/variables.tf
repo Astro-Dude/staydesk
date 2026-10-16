@@ -102,9 +102,9 @@ variable "cluster_endpoint_public_access_cidrs" {
 }
 
 variable "node_instance_types" {
-  description = "EC2 instance types for the managed node group."
+  description = "EC2 instance types for the managed node group. c7i-flex.large (2 vCPU / 4 GiB) is Free Tier eligible, which AWS Free-plan accounts require; t3.medium is not."
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["c7i-flex.large"]
 }
 
 variable "node_min_size" {
