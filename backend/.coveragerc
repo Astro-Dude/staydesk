@@ -1,0 +1,7 @@
+[run]
+source = app
+omit = app/wait_for_db.py
+
+[report]
+show_missing = true
+skip_covered = true

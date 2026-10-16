@@ -1,0 +1,6 @@
+# Test and lint tooling (CI + local only, never shipped in the image)
+-r requirements.txt
+pytest==9.1.1
+pytest-cov==7.1.0
+httpx2==2.13.1
+ruff==0.17.1
