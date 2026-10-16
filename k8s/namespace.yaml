@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staydesk
+  labels:
+    app.kubernetes.io/part-of: staydesk
+    # Pod Security Admission: every StayDesk pod must meet the "restricted" profile
+    # (non-root, no privilege escalation, all capabilities dropped, seccomp on).
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted

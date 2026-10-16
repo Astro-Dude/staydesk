@@ -1,0 +1,23 @@
+# Local kind cluster: images built locally and loaded with `kind load docker-image`.
+backend:
+  image:
+    repository: staydesk-backend
+    tag: local
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+  autoscaling:
+    # Low threshold + small request so the load test visibly scales the backend.
+    targetCPUUtilizationPercentage: 50
+
+frontend:
+  image:
+    repository: staydesk-frontend
+    tag: local
+
+postgres:
+  storage:
+    size: 1Gi
+
+ingress:
+  host: staydesk.localhost

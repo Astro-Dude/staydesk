@@ -1,0 +1,22 @@
+# AWS EKS. CI overrides the image repositories/tags with the commit SHA on every deploy.
+backend:
+  image:
+    repository: ghcr.io/astro-dude/staydesk-backend
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+
+frontend:
+  image:
+    repository: ghcr.io/astro-dude/staydesk-frontend
+  replicaCount: 2
+
+postgres:
+  storage:
+    size: 5Gi
+
+ingress:
+  # No host: the app answers on the load balancer's DNS name. Set a real domain
+  # (plus tls) once DNS points at the Traefik load balancer.
+  host: ""

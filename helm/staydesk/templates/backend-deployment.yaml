@@ -1,0 +1,104 @@
+{{- $component := dict "ctx" . "component" "backend" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "staydesk.fullname" . }}-backend
+  labels:
+    {{- include "staydesk.componentLabels" $component | nindent 4 }}
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  selector:
+    matchLabels:
+      {{- include "staydesk.selectorLabels" $component | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "staydesk.componentLabels" $component | nindent 8 }}
+      annotations:
+        # Roll the pods when the database credentials change.
+        checksum/db-secret: {{ include (print $.Template.BasePath "/secret-db.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "staydesk.selectorLabels" $component | nindent 14 }}
+      initContainers:
+        # Waits for PostgreSQL, applies Alembic migrations (serialised by an advisory
+        # lock across replicas) and seeds demo data into an empty database.
+        - name: migrate
+          image: {{ include "staydesk.backendImage" . }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          args: ["migrate"]
+          env:
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ include "staydesk.dbSecretName" . }}, key: DATABASE_URL}}
+            - name: SEED_DEMO_DATA
+              value: {{ .Values.backend.seedDemoData | quote }}
+            - name: HOTEL_TIMEZONE
+              value: {{ .Values.backend.hotelTimezone | quote }}
+            - name: DB_WAIT_TIMEOUT
+              value: "120"
+          securityContext:
+            {{- include "staydesk.containerSecurityContext" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+      containers:
+        - name: backend
+          image: {{ include "staydesk.backendImage" . }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          args: ["serve"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.port }}
+          env:
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ include "staydesk.dbSecretName" . }}, key: DATABASE_URL}}
+            - name: HOTEL_TIMEZONE
+              value: {{ .Values.backend.hotelTimezone | quote }}
+            - name: GIT_SHA
+              value: {{ .Values.backend.image.tag | default .Chart.AppVersion | quote }}
+          # Liveness only asks "is the process alive"; readiness asks "can it serve traffic"
+          # (database reachable). A DB outage removes pods from the Service instead of
+          # restarting them in a loop.
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: {path: /ready, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            {{- include "staydesk.containerSecurityContext" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,24 @@
+StayDesk {{ .Chart.AppVersion }} deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+  backend image : {{ include "staydesk.backendImage" . }}
+  frontend image: {{ include "staydesk.frontendImage" . }}
+
+Check the rollout:
+  kubectl get pods,svc,ingress,hpa -n {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.host }}
+
+Open the app through the Ingress ({{ .Values.ingress.host }} must resolve to the ingress controller;
+*.localhost resolves to 127.0.0.1 on its own, which is what the kind setup uses):
+  http://{{ .Values.ingress.host }}/          UI
+  http://{{ .Values.ingress.host }}/docs      Swagger
+{{- else }}
+
+Open the app via the ingress controller's load balancer:
+  kubectl get svc -n traefik traefik -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+{{- end }}
+{{- end }}
+
+Without an ingress:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "staydesk.fullname" . }}-frontend 8080:80

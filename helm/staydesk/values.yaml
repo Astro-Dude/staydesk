@@ -1,0 +1,85 @@
+# Default values for the StayDesk chart.
+# Environment overlays: values-dev.yaml (local kind cluster), values-prod.yaml (AWS EKS).
+
+nameOverride: ""
+fullnameOverride: ""
+imagePullSecrets: []   # e.g. [{name: ghcr-pull}] if the GHCR packages are private
+
+backend:
+  image:
+    repository: ghcr.io/astro-dude/staydesk-backend
+    # CI sets this to the commit SHA. Empty falls back to the chart appVersion.
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicaCount: 2          # ignored while autoscaling.enabled (the HPA owns replicas)
+  port: 8000
+  seedDemoData: true       # load demo rooms/reservations into an empty database
+  hotelTimezone: Asia/Kolkata
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 60
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+frontend:
+  image:
+    repository: ghcr.io/astro-dude/staydesk-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  port: 8080
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 128Mi}
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# In-cluster PostgreSQL (fine for a demo; production would typically use Amazon RDS —
+# set postgres.enabled=false and externalDatabase.url instead).
+postgres:
+  enabled: true
+  image: postgres:17-alpine
+  database: staydesk
+  username: staydesk
+  # Leave empty to generate a random password on first install (kept across upgrades).
+  password: ""
+  storage:
+    size: 5Gi
+    storageClassName: ""   # "" = cluster default (gp3 via the EBS CSI add-on on EKS)
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+
+externalDatabase:
+  # SQLAlchemy URL, e.g. postgresql+psycopg://user:pass@mydb.xxxx.ap-south-1.rds.amazonaws.com:5432/staydesk
+  url: ""
+
+ingress:
+  enabled: true
+  # The Ingress resource is only configuration: an Ingress Controller must implement it.
+  # Traefik is used because the community ingress-nginx controller was retired in March 2026.
+  className: traefik
+  host: staydesk.localhost # "" = match any host (e.g. the raw AWS load balancer DNS name)
+  annotations: {}
+  tls: []                  # [{secretName: staydesk-tls, hosts: [staydesk.example.com]}]
+
+networkPolicy:
+  enabled: true            # only backend pods may connect to PostgreSQL
+
+monitoring:
+  serviceMonitor:
+    enabled: true          # rendered only when the Prometheus Operator CRDs exist
+    interval: 15s
+    labels:
+      release: kube-prometheus-stack
+  grafanaDashboard:
+    enabled: true          # ConfigMap picked up by the Grafana dashboard sidecar
+    labels:
+      grafana_dashboard: "1"
