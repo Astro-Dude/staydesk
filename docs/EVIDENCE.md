@@ -12,11 +12,11 @@ this repository's GitHub Actions run #2 and its GHCR packages.
 | **M2** Testing | `backend/tests/` (49 tests), `backend/pytest.ini`, `backend/tests/conftest.py` | [pytest -v: 49 passed, 97% coverage](screenshots/m2-pytest-passing.png) |
 | **M3** Git & GitHub | this repo, `.gitignore` | [commit history: 18 descriptive commits](screenshots/m3-commit-history.png) · [public repo](screenshots/m3-github-repo.png) |
 | **M4** Docker | `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml` | [docker compose up --build, non-root uids](screenshots/m4-docker-compose-up.png) · [app served by compose](screenshots/m4-compose-browser-localhost.png) |
-| **M5** CI/CD | `.github/workflows/ci-cd.yml` | [green pipeline runs](screenshots/m5-actions-pipeline-green.png) · [deploy job: Helm → kind](screenshots/m5-deploy-kind-job.png) · [helm install + Ingress smoke test, `/api/meta` reports the deployed SHA](screenshots/m5-deploy-kind-helm-smoke.png) · [GHCR backend, SHA tags](screenshots/m5-ghcr-backend-sha-tags.png) · [GHCR frontend, SHA tags](screenshots/m5-ghcr-frontend-sha-tags.png) · run: https://github.com/Astro-Dude/staydesk/actions/runs/38945525666 |
+| **M5** CI/CD | `.github/workflows/ci-cd.yml` | [run #5: every job green, including **Deploy · Helm → EKS**](screenshots/m5-actions-eks-deploy-green.png) · [EKS deploy job (OIDC → kubeconfig → helm)](screenshots/m5-deploy-eks-job.png) · [runs list](screenshots/m5-actions-pipeline-green.png) · [ephemeral kind deploy job](screenshots/m5-deploy-kind-job.png) + [its helm/smoke output](screenshots/m5-deploy-kind-helm-smoke.png) · [GHCR backend, SHA tags](screenshots/m5-ghcr-backend-sha-tags.png) · [GHCR frontend](screenshots/m5-ghcr-frontend-sha-tags.png) · run: https://github.com/Astro-Dude/staydesk/actions/runs/38954572064 |
 | **M6** Trivy | `build-scan-push` job in the workflow | [Trivy output from the pipeline: 0 HIGH/CRITICAL in both images](screenshots/m6-trivy-scan-output.png) · [scan step inside the image job](screenshots/m6-trivy-backend-job.png) · explanation below |
-| **M7** Terraform | `terraform/*.tf`, `terraform/terraform.tfvars.example` | [init / fmt / validate](screenshots/m7-terraform-init-validate.png) · [`terraform plan`: 66 to add, 0 errors (real AWS account)](screenshots/m7-terraform-plan.png) · [why apply was blocked](screenshots/m7-aws-scp-blocks-apply.png) |
-| **M8** Kubernetes + Helm | `k8s/namespace.yaml`, `helm/staydesk/` | [pods / svc / ingress / helm list](screenshots/m8-kubectl-pods-svc-ingress-helm.png) · [HPA scaled 2 → 6 under load](screenshots/m8-hpa-scaled-to-6.png) · [app through the Ingress host](screenshots/m1-app-dashboard-ingress.png) |
-| **M9** Observability | `monitoring/`, chart `servicemonitor.yaml`, `files/grafana-dashboard.json` | [/metrics output](screenshots/m9-metrics-endpoint.png) · [Prometheus targets UP](screenshots/m9-prometheus-targets-up.png) · [Grafana dashboard with live data](screenshots/m9-grafana-dashboard.png) |
+| **M7** Terraform | `terraform/*.tf`, `terraform/terraform.tfvars.example` | [init / fmt / validate](screenshots/m7-terraform-init-validate.png) · [`terraform plan`: 61 to add](screenshots/m7-terraform-plan.png) · [`terraform apply` + outputs](screenshots/m7-terraform-apply-and-outputs.png) · AWS Console: [EKS cluster](screenshots/m7-aws-console-eks-cluster.png), [add-ons](screenshots/m7-aws-console-eks-addons.png), [VPC](screenshots/m7-aws-console-vpc.png), [subnets](screenshots/m7-aws-console-subnets.png), [NAT gateway](screenshots/m7-aws-console-nat-gateway.png), [EC2 worker node](screenshots/m7-aws-console-ec2-node.png) · [`terraform destroy`](screenshots/m7-terraform-destroy.png) |
+| **M8** Kubernetes + Helm | `k8s/namespace.yaml`, `helm/staydesk/` | **EKS:** [pods / svc / ingress / hpa / pvc / helm list](screenshots/m8-eks-kubectl-pods-svc-ingress-helm.png) · [app via the AWS load balancer](screenshots/m8-eks-app-via-aws-load-balancer.png) · [reservations](screenshots/m8-eks-app-reservations.png) · [Swagger](screenshots/m8-eks-swagger-via-load-balancer.png) · [curl through the LB](screenshots/m8-eks-curl-load-balancer.png) · [HPA 2 → 6 under load](screenshots/m8-eks-hpa-scaled-to-6.png) · [load balancer in the console](screenshots/m8-aws-console-load-balancer.png) · **kind (local):** [pods / svc / ingress / helm](screenshots/m8-kubectl-pods-svc-ingress-helm.png) · [HPA 2 → 6](screenshots/m8-hpa-scaled-to-6.png) |
+| **M9** Observability | `monitoring/`, chart `servicemonitor.yaml`, `files/grafana-dashboard.json` | [/metrics output](screenshots/m9-metrics-endpoint.png) · **EKS:** [Prometheus targets UP](screenshots/m9-eks-prometheus-targets-up.png) · [Grafana with live load](screenshots/m9-eks-grafana-dashboard.png) · **kind:** [Prometheus targets](screenshots/m9-prometheus-targets-up.png) · [Grafana](screenshots/m9-grafana-dashboard.png) |
 | **M10** Docs & demo | [`README.md`](../README.md) (section 12 is the demo script) | live presentation |
 
 Notes on the local captures:
@@ -41,24 +41,37 @@ compilers, and the frontend has no Node.js. It does not mean the images are "sec
 new CVEs are published daily, so a rebuild of the same Dockerfile can fail later. That is the
 point of scanning in every pipeline run.
 
-## M7: AWS evidence
+## M7 / M8: the AWS run
 
-- `terraform init`, `fmt -check` and `validate` pass.
-- **`terraform plan` ran against a real AWS account** (`139830186609`, `ap-south-1`) and
-  produced a clean plan: **66 to add, 0 to change, 0 to destroy, exit 0**. That covers the
-  VPC with 2 public + 2 private subnets, the NAT gateway, the EKS cluster, the managed node
-  group, the add-ons, and the GitHub OIDC role.
-- **`terraform apply` could not run on that account.** It sits in an AWS Organization whose
-  Service Control Policy explicitly denies EC2 and EKS in every enabled region (screenshot
-  above: `ec2:CreateVpc` refused even though the IAM user has `AdministratorAccess`). An SCP
-  overrides all IAM permissions, so no resources were created and there was nothing to destroy.
-- On an AWS account without that restriction, the full lifecycle is:
+On 17 Oct 2026 the full lifecycle ran against a real AWS account (`290971955241`, `ap-south-1`):
 
-```bash
-aws configure                     # or: aws sso login
-cd terraform
-cp terraform.tfvars.example terraform.tfvars
-terraform init && terraform plan  # screenshot 1
-terraform apply                   # ~15 min, then screenshot the VPC + EKS console pages
-terraform destroy                 # screenshot 2: "Destroy complete!"
-```
+1. `terraform plan`: 61 to add. `terraform apply` created the VPC (2 public + 2 private
+   subnets, one NAT gateway), EKS 1.35, a managed node group, the add-ons (VPC CNI, CoreDNS,
+   kube-proxy, Pod Identity, EBS CSI with a default gp3 StorageClass, metrics-server) and the
+   GitHub OIDC deploy role.
+2. Traefik and kube-prometheus-stack were installed with Helm.
+3. A push to `main` ran the pipeline. **Deploy · Helm → EKS** assumed the deploy role through
+   GitHub OIDC (no AWS keys stored in GitHub) and ran `helm upgrade --install` with the
+   SHA-tagged images. The app answered through the AWS load balancer, `/api/meta` reported
+   the deployed commit, the HPA scaled the backend from 2 to 6 pods under load, and
+   Prometheus scraped every pod.
+4. Helm releases were uninstalled first, which freed the load balancer and the EBS volume.
+   Then `terraform destroy` removed every resource, and a final check confirmed no instances,
+   load balancers, volumes, NAT gateways or Elastic IPs were left.
+
+Things learned on a brand-new **AWS Free-plan** account (all fixed in the code):
+
+- Only Free-Tier instance types can launch, so the node group uses `c7i-flex.large`
+  (2 vCPU / 4 GiB). `t3.medium` is refused.
+- New accounts can't create NLB/ALB load balancers until AWS finishes verifying them. A
+  Classic Load Balancer still works, so the screenshots show Traefik behind one.
+- GitHub's OIDC tokens now carry immutable IDs in `sub`
+  (`repo:Astro-Dude@<id>/staydesk@<id>:ref:refs/heads/main`), and the deploy role's trust
+  policy accepts both forms.
+- To keep cost minimal: one worker node, no customer-managed KMS key, no control-plane log
+  shipping, and no persistent volumes for Prometheus or Grafana. The whole run cost about
+  US$0.40 of free-plan credits.
+
+The console screenshots come from a temporary **read-only** federated session
+(`GetFederationToken` with a Describe/List-only policy), so no password was used and nothing
+could be changed from the browser.
