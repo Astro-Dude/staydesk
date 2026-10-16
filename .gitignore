@@ -1,0 +1,44 @@
+# --- Secrets & local config (never commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+kubeconfig*
+.kube/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.db
+
+# --- Node / frontend ---
+node_modules/
+dist/
+npm-debug.log*
+
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+tfplan
+*.tfplan
+
+# --- Helm ---
+helm/**/charts/*.tgz
+
+# --- OS / editors ---
+.DS_Store
+.idea/
+.vscode/
+*.log
