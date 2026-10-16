@@ -1,0 +1,32 @@
+# Copy to terraform.tfvars and adjust. terraform.tfvars is gitignored.
+# Never put AWS access keys here - use `aws configure` / `aws sso login` instead.
+
+aws_region   = "ap-south-1"
+project_name = "staydesk"
+environment  = "dev"
+
+vpc_cidr             = "10.20.0.0/16"
+availability_zones   = ["ap-south-1a", "ap-south-1b"]
+public_subnet_cidrs  = ["10.20.101.0/24", "10.20.102.0/24"]
+private_subnet_cidrs = ["10.20.1.0/24", "10.20.2.0/24"]
+
+cluster_name       = "staydesk-eks"
+kubernetes_version = "1.35"
+
+# Lock the API endpoint down to your own public IP: curl -s https://checkip.amazonaws.com
+cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]
+
+node_instance_types = ["t3.medium"]
+node_min_size       = 1
+node_desired_size   = 2
+node_max_size       = 4
+node_disk_size_gb   = 30
+
+# GitHub repository allowed to deploy (main branch only).
+github_repository = "Astro-Dude/staydesk"
+
+# Set to false if this AWS account already has the GitHub OIDC provider.
+create_github_oidc_provider = true
+
+# Uncomment if the deploy job uses a GitHub environment.
+# github_deploy_environment = "production"

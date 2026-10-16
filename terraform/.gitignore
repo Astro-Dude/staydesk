@@ -1,0 +1,23 @@
+# Local provider/module cache
+.terraform/
+
+# State can contain secrets - never commit it
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+
+# Real variable values stay local; the .example file is committed
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Local overrides
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+crash.log
+crash.*.log
+*.tfplan
+tfplan
