@@ -37,7 +37,13 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  cloudwatch_log_group_retention_in_days = 7
+  # Minimal footprint for a short-lived capstone cluster: no customer-managed KMS key (EKS
+  # still envelope-encrypts Kubernetes secrets with AWS-owned keys by default) and no
+  # control-plane log shipping to CloudWatch. Nothing is left behind after destroy.
+  create_kms_key              = false
+  encryption_config           = null
+  enabled_log_types           = []
+  create_cloudwatch_log_group = false
 
   addons = {
     vpc-cni = {
