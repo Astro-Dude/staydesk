@@ -1,0 +1,18 @@
+# Traefik as the Ingress Controller on kind (NodePorts mapped to host 80/443 by kind-config.yaml).
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+  name: traefik
+service:
+  type: NodePort
+ports:
+  web:
+    nodePort: 30080
+  websecure:
+    nodePort: 30443
+nodeSelector:
+  kubernetes.io/hostname: staydesk-control-plane
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule

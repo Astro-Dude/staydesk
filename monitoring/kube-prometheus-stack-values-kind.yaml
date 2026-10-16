@@ -1,0 +1,15 @@
+# Local kind overlay: expose Grafana and Prometheus through the Traefik ingress.
+#   http://grafana.localhost   http://prometheus.localhost
+grafana:
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts: [grafana.localhost]
+prometheus:
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts: [prometheus.localhost]
+  prometheusSpec:
+    resources:
+      requests: {cpu: 100m, memory: 384Mi}
