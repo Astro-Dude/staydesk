@@ -40,6 +40,9 @@ Developer ─▶ GitHub ─▶ GitHub Actions ───────────�
 | Kubernetes | Helm chart, Traefik Ingress, HPA, PDBs, NetworkPolicy, restricted Pod Security |
 | Observability | kube-prometheus-stack: Prometheus Operator, Prometheus, Grafana |
 
+> **Evidence for each grading module** (screenshots of tests, compose, Kubernetes, HPA,
+> Prometheus and Grafana) is indexed in [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
+
 ---
 
 ## Contents
