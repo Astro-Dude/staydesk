@@ -25,10 +25,21 @@ locals {
     : data.aws_iam_openid_connect_provider.github[0].arn
   )
 
-  # Only workflows running on the main branch of this repository may assume the role.
+  github_owner = split("/", var.github_repository)[0]
+  github_repo  = split("/", var.github_repository)[1]
+
+  # GitHub OIDC subjects come in two shapes: the classic "repo:owner/name:..." and the newer
+  # one with immutable IDs, "repo:owner@<owner-id>/name@<repo-id>:...". Accept both, but only
+  # for this repository's main branch (or the optional deploy environment).
+  github_oidc_repo_patterns = [
+    var.github_repository,
+    "${local.github_owner}@*/${local.github_repo}@*",
+  ]
   github_oidc_subjects = concat(
-    ["repo:${var.github_repository}:ref:refs/heads/main"],
-    var.github_deploy_environment == null ? [] : ["repo:${var.github_repository}:environment:${var.github_deploy_environment}"],
+    [for r in local.github_oidc_repo_patterns : "repo:${r}:ref:refs/heads/main"],
+    var.github_deploy_environment == null ? [] : [
+      for r in local.github_oidc_repo_patterns : "repo:${r}:environment:${var.github_deploy_environment}"
+    ],
   )
 }
 
