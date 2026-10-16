@@ -203,9 +203,9 @@ ruff check . && ruff format --check .
 `.github/workflows/ci-cd.yml` runs on every push to `main`, on pull requests and on manual dispatch.
 
 ```text
-┌─ backend-test ── ruff, pytest -v, coverage ≥ 85% ─┐
-├─ frontend-build ─ npm ci, vite build ─────────────┼─▶ build-scan-push (matrix: backend, frontend) ─▶ deploy
-└─ iac-scan ─────── Trivy config scan (report) ─────┘     docker build → Trivy → push to GHCR         helm → EKS
+┌─ backend-test ── ruff, pytest -v, coverage ≥ 85% ─┐                                                ┌▶ deploy-kind  helm → ephemeral kind + smoke test
+├─ frontend-build ─ npm ci, vite build ─────────────┼─▶ build-scan-push (matrix: backend, frontend) ─┤
+└─ iac-scan ─────── Trivy config scan (report) ─────┘     docker build → Trivy → push to GHCR         └▶ deploy       helm → EKS (when AWS is configured)
 ```
 
 - **Image tags are the commit SHA**: `ghcr.io/astro-dude/staydesk-backend:<sha>`. There is no
@@ -214,7 +214,12 @@ ruff check . && ruff format --check .
 - Every third-party action is **pinned to a full commit SHA**. Tags are mutable: in March 2026
   attackers force-pushed 76 of 77 `aquasecurity/trivy-action` tags to credential-stealing code,
   and SHA pinning is the defence.
-- **Deploy** uses GitHub OIDC to assume an AWS role created by Terraform, so no AWS keys are
+- **Deploy · Helm → kind (ephemeral)** runs on every push to `main`. It creates a throwaway
+  3-node kind cluster on the runner with Traefik, pulls the images this run just pushed to
+  GHCR, runs `helm upgrade --install --wait --rollback-on-failure`, then smoke-tests every
+  route through the Ingress. It also checks that `/api/meta` reports the commit being
+  deployed, so each push proves the chart really deploys that exact build.
+- **Deploy · Helm → EKS** uses GitHub OIDC to assume an AWS role created by Terraform, so no AWS keys are
   stored in GitHub. It runs `helm upgrade --install … --rollback-on-failure`, then verifies the
   rollout. The job is skipped until the repository variable `AWS_DEPLOY_ROLE_ARN` is set, so
   the pipeline stays green before the AWS infrastructure exists.

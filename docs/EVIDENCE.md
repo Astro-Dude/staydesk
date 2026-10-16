@@ -12,9 +12,9 @@ public GitHub Actions history of this repository.
 | **M2** Testing | `backend/tests/` (49 tests), `backend/pytest.ini`, `backend/tests/conftest.py` | [pytest -v: 49 passed, 97% coverage](screenshots/m2-pytest-passing.png) |
 | **M3** Git & GitHub | this repo, `.gitignore` | commit history on GitHub (≥ 10 descriptive commits) |
 | **M4** Docker | `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml` | [docker compose up --build, non-root uids](screenshots/m4-docker-compose-up.png) · [app served by compose](screenshots/m4-compose-browser-localhost.png) |
-| **M5** CI/CD | `.github/workflows/ci-cd.yml` | GitHub → **Actions** (green runs), GitHub → **Packages** (SHA-tagged images) |
+| **M5** CI/CD | `.github/workflows/ci-cd.yml` | GitHub → **Actions**: green runs, including *Deploy · Helm → kind (ephemeral)*, which installs the SHA-tagged images with Helm and smoke-tests them through the Ingress · GitHub → **Packages** (SHA-tagged images) |
 | **M6** Trivy | `build-scan-push` job in the workflow | Trivy step log in each Actions run; explanation below |
-| **M7** Terraform | `terraform/*.tf`, `terraform/terraform.tfvars.example` | [init / fmt / validate](screenshots/m7-terraform-init-validate.png) |
+| **M7** Terraform | `terraform/*.tf`, `terraform/terraform.tfvars.example` | [init / fmt / validate](screenshots/m7-terraform-init-validate.png) · [`terraform plan`: 66 to add, 0 errors (real AWS account)](screenshots/m7-terraform-plan.png) · [why apply was blocked](screenshots/m7-aws-scp-blocks-apply.png) |
 | **M8** Kubernetes + Helm | `k8s/namespace.yaml`, `helm/staydesk/` | [pods / svc / ingress / helm list](screenshots/m8-kubectl-pods-svc-ingress-helm.png) · [HPA scaled 2 → 6 under load](screenshots/m8-hpa-scaled-to-6.png) · [app through the Ingress host](screenshots/m1-app-dashboard-ingress.png) |
 | **M9** Observability | `monitoring/`, chart `servicemonitor.yaml`, `files/grafana-dashboard.json` | [/metrics output](screenshots/m9-metrics-endpoint.png) · [Prometheus targets UP](screenshots/m9-prometheus-targets-up.png) · [Grafana dashboard with live data](screenshots/m9-grafana-dashboard.png) |
 | **M10** Docs & demo | [`README.md`](../README.md) (section 12 is the demo script) | live presentation |
@@ -43,10 +43,16 @@ point of scanning in every pipeline run.
 
 ## M7: AWS evidence
 
-The Terraform passes `init`, `fmt -check` and `validate` (screenshot above), and it is
-written to provision the required VPC (2 public + 2 private subnets) and an EKS cluster with
-a managed node group. The **`terraform plan`, AWS Console and `terraform destroy`
-screenshots** need an AWS account with credentials:
+- `terraform init`, `fmt -check` and `validate` pass.
+- **`terraform plan` ran against a real AWS account** (`139830186609`, `ap-south-1`) and
+  produced a clean plan: **66 to add, 0 to change, 0 to destroy, exit 0**. That covers the
+  VPC with 2 public + 2 private subnets, the NAT gateway, the EKS cluster, the managed node
+  group, the add-ons, and the GitHub OIDC role.
+- **`terraform apply` could not run on that account.** It sits in an AWS Organization whose
+  Service Control Policy explicitly denies EC2 and EKS in every enabled region (screenshot
+  above: `ec2:CreateVpc` refused even though the IAM user has `AdministratorAccess`). An SCP
+  overrides all IAM permissions, so no resources were created and there was nothing to destroy.
+- On an AWS account without that restriction, the full lifecycle is:
 
 ```bash
 aws configure                     # or: aws sso login
