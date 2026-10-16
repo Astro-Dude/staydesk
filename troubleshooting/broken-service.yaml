@@ -1,0 +1,18 @@
+# LAB 2 — Service with no endpoints
+# The selector asks for component=api, but the backend pods are labelled component=backend.
+# The Service gets a ClusterIP, yet nothing answers behind it.
+#   kubectl apply -f troubleshooting/broken-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: staydesk-broken-service
+  namespace: staydesk
+  labels: {lab: broken-service}
+spec:
+  selector:
+    app.kubernetes.io/name: staydesk
+    app.kubernetes.io/component: api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000

@@ -1,0 +1,27 @@
+# LAB 1 — ImagePullBackOff
+# The tag does not exist in the registry, so the kubelet can never pull the image.
+#   kubectl apply -f troubleshooting/broken-image.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: staydesk-broken-image
+  namespace: staydesk
+  labels: {lab: broken-image}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {lab: broken-image}
+  template:
+    metadata:
+      labels: {lab: broken-image}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: backend
+          image: ghcr.io/astro-dude/staydesk-backend:does-not-exist
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}

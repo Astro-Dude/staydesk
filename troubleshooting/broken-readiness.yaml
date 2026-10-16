@@ -1,0 +1,42 @@
+# LAB 3 — Running but never Ready (liveness vs readiness)
+# The API process starts fine, so /health (liveness) passes and the pod is not restarted.
+# But DATABASE_URL points at a host that does not exist, so /ready returns 503 and the
+# pod never joins its Service — exactly what readiness probes are for.
+#   kubectl apply -f troubleshooting/broken-readiness.yaml
+# On EKS, change the image to ghcr.io/astro-dude/staydesk-backend:<commit-sha>.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: staydesk-broken-readiness
+  namespace: staydesk
+  labels: {lab: broken-readiness}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {lab: broken-readiness}
+  template:
+    metadata:
+      labels: {lab: broken-readiness}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: backend
+          image: staydesk-backend:local
+          imagePullPolicy: IfNotPresent
+          args: ["serve"]
+          env:
+            - name: DATABASE_URL
+              value: postgresql+psycopg://staydesk:wrong@postgres-does-not-exist:5432/staydesk
+          ports:
+            - {name: http, containerPort: 8000}
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+          readinessProbe:
+            httpGet: {path: /ready, port: http}
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
