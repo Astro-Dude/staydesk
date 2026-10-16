@@ -1,0 +1,64 @@
+# Rendered at container start by the official nginx image entrypoint
+# (/docker-entrypoint.d/20-envsubst-on-templates.sh): only variables that exist in
+# the environment (BACKEND_URL) are substituted; nginx variables like $uri are kept.
+server {
+    listen 8080;
+    server_name _;
+    server_tokens off;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Kubernetes liveness/readiness probe target; does not depend on the backend.
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # API proxy for Docker Compose and in-cluster access (port-forward / LoadBalancer).
+    # With the Ingress enabled, /api is routed straight to the backend Service instead.
+    location /api/ {
+        proxy_pass ${BACKEND_URL};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 30s;
+    }
+
+    location = /health {
+        proxy_pass ${BACKEND_URL}/health;
+        access_log off;
+    }
+
+    # Vite emits content-hashed filenames, so assets can be cached for a year.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
+    }
+
+    # Always revalidate the SPA shell so a new deployment is picked up immediately.
+    location = /index.html {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
