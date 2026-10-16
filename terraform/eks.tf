@@ -70,6 +70,10 @@ module "eks" {
       instance_types = var.node_instance_types
       capacity_type  = "ON_DEMAND"
 
+      # EKS already launches the newest AMI for the Kubernetes version; skipping the module's
+      # SSM lookup means plan doesn't need ssm:GetParameter (denied by some org SCPs).
+      use_latest_ami_release_version = false
+
       min_size     = var.node_min_size
       max_size     = var.node_max_size
       desired_size = var.node_desired_size
