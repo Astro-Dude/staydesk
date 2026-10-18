@@ -42,6 +42,9 @@ Developer ─▶ GitHub ─▶ GitHub Actions ───────────�
 
 > **Evidence for each grading module** (screenshots of tests, compose, Kubernetes, HPA,
 > Prometheus and Grafana) is indexed in [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
+>
+> **Final presentation:** [`StayDesk-Final-Presentation.pptx`](StayDesk-Final-Presentation.pptx)
+> walks the 13 stages from application to troubleshooting, with speaker notes for the live demo.
 
 ---
 
