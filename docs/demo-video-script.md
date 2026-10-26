@@ -2,7 +2,7 @@
 
 A first-person story for the capstone demo video (about 8 minutes). Each scene lists what is
 on screen and what is said. The video is generated from this file: slides are rendered from
-`StayDesk-Final-Presentation.pptx`, the app scenes are a real recording of StayDesk running
+`demo/StayDesk-Final-Presentation.pptx`, the app scenes are a real recording of StayDesk running
 in Docker Compose, and the narration is synthesised from the text below.
 
 ---

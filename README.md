@@ -42,9 +42,17 @@ Developer ─▶ GitHub ─▶ GitHub Actions ───────────�
 
 > **Evidence for each grading module** (screenshots of tests, compose, Kubernetes, HPA,
 > Prometheus and Grafana) is indexed in [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
->
-> **Final presentation:** [`StayDesk-Final-Presentation.pptx`](StayDesk-Final-Presentation.pptx)
-> walks the 13 stages from application to troubleshooting, with speaker notes for the live demo.
+
+## Demo
+
+| | |
+|---|---|
+| **Demo video** (4K, 9½ min, narrated) | [`demo/StayDesk-Demo-4K.mp4`](demo/StayDesk-Demo-4K.mp4) · [subtitles](demo/StayDesk-Demo-4K.srt) · [script](docs/demo-video-script.md) |
+| **Presentation** | [`demo/StayDesk-Final-Presentation.pptx`](demo/StayDesk-Final-Presentation.pptx): the 13 stages from application to troubleshooting, with speaker notes |
+
+The video shows the live app (dashboard, a booking, check-in and check-out, housekeeping) and
+then walks through the presentation. It is stored with Git LFS: on GitHub open the file and
+use **Download**, or run `git lfs pull` after cloning.
 
 ---
 
